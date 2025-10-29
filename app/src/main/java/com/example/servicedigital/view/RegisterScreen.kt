@@ -7,21 +7,29 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.servicedigital.controller.UserController
+import kotlinx.coroutines.launch
+import com.example.servicedigital.view.ServiceViewModel
 
 @Composable
 fun RegisterScreen(navController: NavController) {
+    var nombre by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-    var error by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf("") }
 
     val backgroundColor = Color(0xFFE3F2FD)
     val buttonColor = Color(0xFF64B5F6)
+    val textColor = Color(0xFF0D47A1)
+
+    val coroutineScope = rememberCoroutineScope()
+    val userController = remember { UserController() }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -34,65 +42,81 @@ fun RegisterScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text("Registro", fontSize = 32.sp, color = Color(0xFF0D47A1))
+            Text(
+                text = "Crear cuenta",
+                color = textColor,
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Bold
+            )
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(30.dp))
+
+            OutlinedTextField(
+                value = nombre,
+                onValueChange = { nombre = it },
+                label = { Text("Nombre completo") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(15.dp))
 
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
                 label = { Text("Correo electrónico") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(15.dp))
 
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
                 label = { Text("Contraseña") },
                 visualTransformation = PasswordVisualTransformation(),
+                singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            OutlinedTextField(
-                value = confirmPassword,
-                onValueChange = { confirmPassword = it },
-                label = { Text("Confirmar contraseña") },
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            if (error.isNotEmpty()) {
-                Text(text = error, color = Color.Red, modifier = Modifier.padding(top = 8.dp))
+            if (errorMessage.isNotBlank()) {
+                Text(text = errorMessage, color = Color.Red, fontSize = 14.sp)
             }
 
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(25.dp))
 
             Button(
                 onClick = {
                     when {
-                        email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() -> {
-                            error = "Completa todos los campos"
-                        }
-                        password != confirmPassword -> {
-                            error = "Las contraseñas no coinciden"
+                        nombre.isBlank() || email.isBlank() || password.isBlank() -> {
+                            errorMessage = "Completa todos los campos"
                         }
                         else -> {
-                            error = ""
-                            // Aquí luego conectamos la API de registro
-                            navController.navigate("login")
+                            errorMessage = ""
+                            coroutineScope.launch {
+                                val result = userController.register(nombre, email, password)
+                                if (result.contains("exitoso", ignoreCase = true)) {
+                                    navController.navigate("login")
+                                } else {
+                                    errorMessage = result
+                                }
+                            }
                         }
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = buttonColor),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Registrar", color = Color.White, fontSize = 18.sp)
+                Text("Registrarse", color = Color.White, fontSize = 18.sp)
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            TextButton(onClick = { navController.navigate("login") }) {
+                Text("¿Ya tienes cuenta? Inicia sesión", color = textColor)
             }
         }
     }

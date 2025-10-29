@@ -96,6 +96,10 @@ fun LoginScreen(navController: NavController) {
                             errorMessage = ""
                             coroutineScope.launch {
                                 val response = userController.login(email, password)
+                                val nombreUsuario = userController.login(email, password)
+                                if (nombreUsuario != "error"){
+                                    navController.navigate("catalog/$nombreUsuario")
+                                }
                                 if (response.contains("exitoso", ignoreCase = true)) {
                                     navController.navigate("catalog")
                                 } else {
