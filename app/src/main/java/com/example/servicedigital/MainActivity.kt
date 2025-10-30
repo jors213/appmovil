@@ -18,6 +18,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.servicedigital.view.ChatScreen
+import com.example.servicedigital.view.ChatViewModel
+
 
 import com.example.servicedigital.view.ServiceViewModel
 
@@ -27,7 +29,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             ServiceDigitalTheme {
                 Surface(color = Color.White) {
-                    MainApp()
+                    MainApp(
+                    )
                 }
             }
         }
@@ -36,6 +39,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainApp() {
+    val chatViewModel: ChatViewModel = viewModel()
     val navController = rememberNavController()
     val serviceViewModel: ServiceViewModel = viewModel() // 👈 ViewModel compartido
 
@@ -69,10 +73,10 @@ fun MainApp() {
         }
         composable ( "chatScreen/{contacto}" ) {backStackEntry ->
             val contacto = backStackEntry.arguments?.getString("contacto") ?: ""
-            ChatScreen(navController, contacto)
+            ChatScreen(navController, contacto, chatViewModel)
         }
         composable ("chatScreen"){
-            ChatScreen(navController, contacto = "general")
+            ChatScreen(navController, contacto = "general", chatViewModel)
         }
     }
 }

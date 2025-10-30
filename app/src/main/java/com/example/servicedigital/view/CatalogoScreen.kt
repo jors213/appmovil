@@ -64,7 +64,7 @@ fun ServiceCatalogScreen(
         Servicio(6, "Gasfitería general", "Reparaciones y certificaciones", R.drawable.placeholder, "999888777")
     )
 
-// Mezclamos los servicios base con los agregados desde UploadService
+    // Mezclamos los servicios base con los agregados desde UploadService
     val servicios = remember { mutableStateListOf<Servicio>() }
     LaunchedEffect(Unit) {
         servicios.clear()

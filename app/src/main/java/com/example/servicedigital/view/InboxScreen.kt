@@ -52,7 +52,7 @@ fun InboxScreen(navController: NavController) {
                     .padding(bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { navController.popBackStack() }) {
+                IconButton(onClick = { navController.navigate("catalog/{nombreUsuario}") }) {
                     Icon(
                         painter = painterResource(id = R.drawable.icons8arrow24),
                         contentDescription = "Volver",

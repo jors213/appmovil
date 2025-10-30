@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.servicedigital.controller.UserController
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -27,6 +28,7 @@ fun LoginScreen(navController: NavController) {
     val buttonColor = Color(0xFF64B5F6)
     val textColor = Color(0xFF0D47A1)
 
+    var isLoading by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val userController = remember { UserController() }
 
@@ -88,41 +90,37 @@ fun LoginScreen(navController: NavController) {
             // Botón de inicio de sesión
             Button(
                 onClick = {
-                    when {
-                        email.isBlank() || password.isBlank() -> {
-                            errorMessage = "Por favor, completa todos los campos"
-                        }
-                        else -> {
-                            errorMessage = ""
-                            coroutineScope.launch {
-                                val response = userController.login(email, password)
-                                val nombreUsuario = userController.login(email, password)
-                                if (nombreUsuario != "error"){
-                                    navController.navigate("catalog/$nombreUsuario")
-                                }
-                                if (response.contains("exitoso", ignoreCase = true)) {
-                                    navController.navigate("catalog")
-                                } else {
-                                    errorMessage = "Usuario o contraseña incorrectos"
-                                }
-                            }
+                    if (email.isBlank() || password.isBlank()) {
+                        errorMessage = "Por favor, completa todos los campos"
+                    } else if (!isLoading) {
+                        isLoading = true
+                        errorMessage = ""
+
+                        coroutineScope.launch {
+                            delay(2000L) // Espera 2 segundos simulando carga
+                            isLoading = false
+                            navController.navigate("catalog/{nombreUsuario}") // cambia al destino deseado
                         }
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = buttonColor),
+                enabled = !isLoading,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF64B5F6)),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Iniciar Sesión", color = Color.White, fontSize = 18.sp)
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(if (isLoading) "Ingresando..." else "Iniciar Sesión", color = Color.White)
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Botón para ir a registro
-            TextButton(onClick = { navController.navigate("register") }) {
-                Text(
-                    text = "¿Aún no estás registrado? Aprieta aquí",
-                    color = textColor
-                )
+            if (errorMessage.isNotBlank()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(errorMessage, color = Color.Red)
             }
         }
     }
