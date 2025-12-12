@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.servicedigital.controller.UserController
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.example.servicedigital.view.ServiceViewModel
 
@@ -23,10 +24,13 @@ fun RegisterScreen(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
 
-    val backgroundColor = Color(0xFFE3F2FD)
-    val buttonColor = Color(0xFF64B5F6)
-    val textColor = Color(0xFF0D47A1)
+    // Using MaterialTheme colors
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val buttonColor = MaterialTheme.colorScheme.primary
+    val textColor = MaterialTheme.colorScheme.primary
+    val onButtonColor = MaterialTheme.colorScheme.onPrimary
 
     val coroutineScope = rememberCoroutineScope()
     val userController = remember { UserController() }
@@ -38,6 +42,7 @@ fun RegisterScreen(navController: NavController) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .statusBarsPadding()
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -56,7 +61,13 @@ fun RegisterScreen(navController: NavController) {
                 onValueChange = { nombre = it },
                 label = { Text("Nombre completo") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.secondary,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.secondary
+                )
             )
 
             Spacer(modifier = Modifier.height(15.dp))
@@ -67,7 +78,13 @@ fun RegisterScreen(navController: NavController) {
                 label = { Text("Correo electrónico") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.secondary,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.secondary
+                )
             )
 
             Spacer(modifier = Modifier.height(15.dp))
@@ -79,11 +96,17 @@ fun RegisterScreen(navController: NavController) {
                 visualTransformation = PasswordVisualTransformation(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.secondary,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.secondary
+                )
             )
 
             if (errorMessage.isNotBlank()) {
-                Text(text = errorMessage, color = Color.Red, fontSize = 14.sp)
+                Text(text = errorMessage, color = MaterialTheme.colorScheme.error, fontSize = 14.sp)
             }
 
             Spacer(modifier = Modifier.height(25.dp))
@@ -94,29 +117,43 @@ fun RegisterScreen(navController: NavController) {
                         nombre.isBlank() || email.isBlank() || password.isBlank() -> {
                             errorMessage = "Completa todos los campos"
                         }
-                        else -> {
+                        !isLoading -> {
                             errorMessage = ""
+                            isLoading = true
                             coroutineScope.launch {
+                                delay(2000L) // Delay de 2 segundos para simular carga
                                 val result = userController.register(nombre, email, password)
                                 if (result.contains("exitoso", ignoreCase = true)) {
-                                    navController.navigate("login")
+                                    navController.navigate("login"){
+                                        popUpTo("register") {inclusive = true}
+                                    }
                                 } else {
                                     errorMessage = result
                                 }
+                                isLoading = false
                             }
                         }
                     }
                 },
+                enabled = !isLoading,
                 colors = ButtonDefaults.buttonColors(containerColor = buttonColor),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Registrarse", color = Color.White, fontSize = 18.sp)
+                 if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(if (isLoading) "Registrando..." else "Registrarse", color = onButtonColor, fontSize = 18.sp)
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
             TextButton(onClick = { navController.navigate("login") }) {
-                Text("¿Ya tienes cuenta? Inicia sesión", color = textColor)
+                Text("¿Ya tienes cuenta? Inicia sesión", color = MaterialTheme.colorScheme.secondary)
             }
         }
     }

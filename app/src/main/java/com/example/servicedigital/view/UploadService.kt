@@ -2,7 +2,6 @@ package com.example.servicedigital.view
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
-import androidx.compose.material3.CheckboxDefaults.colors
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -11,6 +10,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.servicedigital.R
+import com.example.servicedigital.api.ApiService
+import com.example.servicedigital.model.ServiceRequest
+import com.example.servicedigital.network.RetrofitClient
 import com.example.servicedigital.view.ServiceViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -27,26 +29,23 @@ fun UploadServiceScreen(
     var contacto by remember { mutableStateOf("") }
     var mensaje by remember { mutableStateOf("") }
 
-    val buttonColor = Color(0xFF64B5F6)
-    val textColor = Color(0xFF0D47A1)
-
-    // CORRECTO: scope para lanzar coroutines fuera del contexto composable
     val coroutineScope = rememberCoroutineScope()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = Color(0xFFE3F2FD)
+        color = MaterialTheme.colorScheme.background
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .statusBarsPadding()
                 .padding(24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = "Subir Servicio",
-                color = textColor,
+                color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.headlineMedium
             )
 
@@ -56,7 +55,13 @@ fun UploadServiceScreen(
                 value = titulo,
                 onValueChange = { titulo = it },
                 label = { Text("Título del servicio") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.secondary,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.secondary
+                )
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -65,7 +70,13 @@ fun UploadServiceScreen(
                 value = descripcion,
                 onValueChange = { descripcion = it },
                 label = { Text("Descripción") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.secondary,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.secondary
+                )
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -74,7 +85,13 @@ fun UploadServiceScreen(
                 value = contacto,
                 onValueChange = { contacto = it },
                 label = { Text("Correo o número de contacto") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.secondary,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.secondary
+                )
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -87,41 +104,68 @@ fun UploadServiceScreen(
                         isUploading = true
                         mensaje = "Subiendo servicio..."
 
-                        // ✅ Aquí usamos coroutineScope.launch en lugar de LaunchedEffect
                         coroutineScope.launch {
-                            delay(2000L) // ⏳ Simula el tiempo de subida
-                            val nuevoServicio = Servicio(
-                                id = viewModel.servicios.size + 1,
+                            delay(800) // animación opcional
+
+                            val request = ServiceRequest(
                                 titulo = titulo,
                                 descripcion = descripcion,
-                                imagen = R.drawable.placeholder,
-                                contacto = contacto
+                                imagen = "placeholder.png",
+                                contacto = contacto,
+                                usuarioEmail = userName
                             )
-                            viewModel.agregarServicio(nuevoServicio)
-                            isUploading = false
-                            mensaje = "Servicio publicado con éxito ✅"
 
-                            navController.navigate("catalog/$userName") {
-                                popUpTo("catalog/$userName") { inclusive = true }
+                            try {
+                                // Use ViewModel method if available or direct Retrofit call, but be careful with threads
+                                // Here we are in coroutineScope.launch which is Main thread by default for Compose scope? 
+                                // Retrofit suspend functions are main-safe.
+                                
+                                // Better to use ViewModel to hold logic and survive config changes, but direct call is ok for simple prototype.
+                                // However, the user previously injected ServiceViewModel.
+                                // Let's try to use the ViewModel method if it exists or create one.
+                                // The ServiceViewModel provided has a 'subirServicio' method.
+                                
+                                val success = viewModel.subirServicio(request)
+
+                                isUploading = false
+
+                                if (success) {
+                                    mensaje = "Servicio publicado con éxito"
+                                    
+                                    // Reload services in ViewModel to reflect changes in Catalog
+                                    viewModel.cargarServicios()
+
+                                    //volver al catálogo
+                                    navController.navigate("catalogo/$userName") {
+                                        popUpTo("catalogo/$userName") { inclusive = true }
+                                    }
+
+                                } else {
+                                    mensaje = "Error al publicar el servicio (Server Error)"
+                                }
+                            } catch (e: Exception) {
+                                isUploading = false
+                                mensaje = "Error de conexión: ${e.localizedMessage}"
+                                e.printStackTrace()
                             }
                         }
                     }
                 },
                 enabled = !isUploading,
-                colors = ButtonDefaults.buttonColors(containerColor = buttonColor),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (isUploading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         strokeWidth = 2.dp
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
                 Text(
                     if (isUploading) "Subiendo..." else "Publicar servicio",
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
             }
 
@@ -129,14 +173,14 @@ fun UploadServiceScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     mensaje,
-                    color = if (mensaje.contains("éxito")) Color(0xFF2E7D32) else Color.Red
+                    color = if (mensaje.contains("éxito")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             TextButton(onClick = { navController.popBackStack() }) {
-                Text("Cancelar", color = textColor)
+                Text("Cancelar", color = MaterialTheme.colorScheme.secondary)
             }
         }
     }

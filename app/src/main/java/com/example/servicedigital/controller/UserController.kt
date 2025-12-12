@@ -10,20 +10,23 @@ import org.json.JSONObject
 class UserController {
     private val api = RetrofitClient.instance
 
-    suspend fun login(email: String, password: String): String = withContext(Dispatchers.IO) {
+    suspend fun login(email: String, password: String): User? = withContext(Dispatchers.IO) {
         try {
             // Se envía el usuario al backend
             val response = api.login(User(email = email, password = password, nombre = ""))
 
             if (response.isSuccessful) {
                 val json = JSONObject(response.body()?.string() ?: "")
-                json.optString("nombre", "Usuario")
+                return@withContext User(
+                    nombre = json.optString("nombre", ""),
+                    email = json.optString("email", ""),
+                    password = ""
+                )
             } else {
-                "error"
+                null
             }
         } catch (e: Exception) {
-            e.printStackTrace()
-            "error"
+            null
         }
     }
 

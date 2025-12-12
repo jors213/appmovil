@@ -7,6 +7,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +28,9 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.servicedigital.R
 import com.example.servicedigital.view.ServiceViewModel
+import androidx.compose.material3.CardDefaults
+import com.example.servicedigital.network.RetrofitClient
+import com.example.servicedigital.ui.theme.ThemeManager
 
 
 // Modelo del servicio
@@ -39,14 +46,17 @@ data class Servicio(
 fun ServiceCatalogScreen(
     navController: NavController,
     userName: String = "",
-    viewModel: ServiceViewModel = viewModel() // Aquí se inyecta correctamente
+    viewModel: ServiceViewModel = viewModel(),
+    chatViewModel: ChatViewModel = viewModel()
 ) {
     var showDialog by remember { mutableStateOf(false) }
     var contactoSeleccionado by remember { mutableStateOf("") }
 
-    val backgroundColor = Color(0xFFE3F2FD)
-    val buttonColor = Color(0xFF64B5F6)
-    val textColor = Color(0xFF0D47A1)
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val buttonColor = MaterialTheme.colorScheme.primary
+    val textColor = MaterialTheme.colorScheme.onBackground
+    val cardColor = MaterialTheme.colorScheme.surface
+    
     var showSidePanel by remember { mutableStateOf(false) }
 
     val panelOffset by animateDpAsState(
@@ -64,11 +74,39 @@ fun ServiceCatalogScreen(
         Servicio(6, "Gasfitería general", "Reparaciones y certificaciones", R.drawable.placeholder, "999888777")
     )
 
-    // Mezclamos los servicios base con los agregados desde UploadService
-    val servicios = remember { mutableStateListOf<Servicio>() }
+    val serviciosApi = viewModel.servicios
+
     LaunchedEffect(Unit) {
-        servicios.clear()
-        servicios.addAll(serviciosBase + viewModel.servicios)
+        try {
+            val response = RetrofitClient.instance.getServices()
+            if (response.isSuccessful && response.body() != null) {
+                val serviciosApi = response.body()!!.map {
+                    Servicio(
+                        id = it.id ?: 0,
+                        titulo = it.titulo,
+                        descripcion = it.descripcion,
+                        imagen = R.drawable.placeholder,
+                        contacto = it.contacto
+                    )
+                }
+                viewModel.servicios.clear()
+                viewModel.servicios.addAll(response.body()!!)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    val serviciosCombinados = remember ( serviciosApi ){
+        serviciosBase + serviciosApi.map {
+            Servicio(
+                id = it.id ?: 0,
+                titulo = it.titulo,
+                descripcion = it.descripcion,
+                imagen = R.drawable.placeholder,
+                contacto = it.contacto
+            )
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -76,93 +114,79 @@ fun ServiceCatalogScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(backgroundColor)
-                .statusBarsPadding()
-                .navigationBarsPadding()
                 .padding(horizontal = 12.dp, vertical = 8.dp)
+                .statusBarsPadding()
         ) {
             // Encabezado
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = {navController.navigate("uploadService")}) {
+                IconButton(onClick = { navController.navigate("uploadService") }) {
                     Icon(
                         painter = painterResource(id = R.drawable.icons8plus48),
                         contentDescription = "uploadService",
-                        tint = Color(0xFF0D47A1),
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+                IconButton(onClick = { navController.navigate("qrScanner/$userName") }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.iconoscaner),
+                        contentDescription = "Escanear QR",
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(28.dp)
                     )
                 }
 
-                IconButton(onClick = {navController.navigate("inboxScreen")}) {
+
+                IconButton(onClick = { navController.navigate("inboxScreen/$userName") }) {
                     Icon(
                         painter = painterResource(id = R.drawable.icons8urgentmessage24),
                         contentDescription = "inboxScreen",
-                        tint = Color(0xFF0D47A1),
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(28.dp)
                     )
                 }
-
-                /*Button(
-                    onClick = { navController.navigate("uploadService") },
-                    colors = ButtonDefaults.buttonColors(containerColor = buttonColor)
-                ) {
-                    Text("Subir servicio", color = Color.White)
-                }*/
-
-
 
                 Text(
                     text = "ServiceDigital",
-                    color = textColor,
                     fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = textColor
                 )
 
-
-
-                IconButton(onClick = {showSidePanel = !showSidePanel}) {
+                IconButton(onClick = { showSidePanel = !showSidePanel }) {
                     Icon(
                         painter = painterResource(id = R.drawable.icons8profile24),
                         contentDescription = "Usuario",
-                        tint = Color(0xFF0D47A1),
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(28.dp)
                     )
                 }
-
-                /*TextButton(
-
-                    onClick = { showSidePanel = !showSidePanel }
-                ) {
-                    //Text(userName, color = textColor, fontSize = 16.sp)
-                    Image()
-                }*/
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Lista de servicios con scroll
+            //LISTA DE SERVICIOS
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(servicios) { servicio ->
+                items(serviciosCombinados) { servicio ->
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        elevation = CardDefaults.cardElevation(4.dp),
-                        shape = MaterialTheme.shapes.medium
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        colors = CardDefaults.cardColors(containerColor = cardColor)
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.padding(16.dp)
                         ) {
+
+                            //placeholder temporal
                             Image(
-                                painter = painterResource(id = servicio.imagen),
+                                painter = painterResource(id = R.drawable.placeholder),
                                 contentDescription = servicio.titulo,
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -170,32 +194,22 @@ fun ServiceCatalogScreen(
                                 contentScale = ContentScale.Crop
                             )
 
-                            Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(Modifier.height(10.dp))
 
-                            Text(
-                                servicio.titulo,
-                                fontWeight = FontWeight.Bold,
-                                color = textColor,
-                                fontSize = 18.sp
-                            )
-                            Text(
-                                servicio.descripcion,
-                                color = Color.DarkGray,
-                                fontSize = 14.sp
-                            )
+                            Text(servicio.titulo, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Text(servicio.descripcion, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-                            Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(Modifier.height(10.dp))
 
-                            // Botón de contacto
                             Button(
                                 onClick = {
                                     contactoSeleccionado = servicio.contacto
                                     showDialog = true
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = buttonColor),
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
                             ) {
-                                Text("Contactar servicio", color = Color.White)
+                                Text("Contactar servicio", color = MaterialTheme.colorScheme.onSecondary)
                             }
                         }
                     }
@@ -205,8 +219,10 @@ fun ServiceCatalogScreen(
             if (showDialog) {
                 ContactDialog(
                     contacto = contactoSeleccionado,
+                    userName = userName,
                     onClose = { showDialog = false },
-                    navController = navController
+                    navController = navController,
+                    chatViewModel = chatViewModel
                 )
             }
         }
@@ -218,7 +234,7 @@ fun ServiceCatalogScreen(
                 .width(250.dp)
                 .align(Alignment.TopEnd)
                 .offset(x = panelOffset)
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp))
                 .padding(16.dp)
         ) {
             Column(
@@ -229,37 +245,116 @@ fun ServiceCatalogScreen(
                     .statusBarsPadding()
                     .navigationBarsPadding()
             ) {
-                Text(
-                    text = "Hola, $userName",
-                    color = textColor,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
-                )
+                // Perfil Header
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
+                ) {
+                     Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = "Hola,",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 14.sp
+                        )
+                        Text(
+                            text = userName,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
+                     }
+                     Spacer(modifier = Modifier.width(12.dp))
+                     Icon(
+                         painter = painterResource(id = R.drawable.icons8profile24),
+                         contentDescription = null,
+                         tint = MaterialTheme.colorScheme.primary,
+                         modifier = Modifier.size(40.dp)
+                     )
+                }
 
-                Spacer(modifier = Modifier.height(30.dp))
+                Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                
+                Spacer(modifier = Modifier.height(16.dp))
 
-                Text(
-                    text = "Cerrar sesión",
-                    color = Color.Red,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp,
+                // Switch de Tema
+                Row(
                     modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { ThemeManager.isDarkTheme = !ThemeManager.isDarkTheme }
+                        .padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if(ThemeManager.isDarkTheme) "Modo Oscuro" else "Modo Claro",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Icon(
+                        imageVector = if (ThemeManager.isDarkTheme) Icons.Default.DarkMode else Icons.Default.LightMode,
+                        contentDescription = "Cambiar tema",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                // Botón "Muestra tu Qr"
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
                         .clickable {
                             showSidePanel = false
-                            navController.navigate("login") {
-                                popUpTo("catalog") { inclusive = true }
-                            }
+                            navController.navigate("userQr/$userName")
                         }
-                        .padding(vertical = 8.dp)
-                )
+                        .padding(vertical = 12.dp),
+                     horizontalArrangement = Arrangement.End,
+                     verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Tu Código QR",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Icon(
+                        painter = painterResource(id = R.drawable.iconoscaner),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.weight(1f))
+
+                Divider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                // Cerrar Sesión
+                TextButton(
+                    onClick = {
+                        showSidePanel = false
+                        navController.navigate("login") {
+                            popUpTo("catalog") { inclusive = true }
+                        }
+                    },
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
+                    Text(
+                        text = "Cerrar sesión",
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Button(
                     onClick = { showSidePanel = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = buttonColor)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Cerrar panel", color = Color.White)
+                    Text("Cerrar panel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -267,41 +362,43 @@ fun ServiceCatalogScreen(
 }
 
 @Composable
-fun ContactDialog(contacto: String, onClose: () -> Unit, navController: NavController) {
+fun ContactDialog(contacto: String, userName: String, onClose: () -> Unit, navController: NavController, chatViewModel: ChatViewModel) {
     val clipboardManager = LocalClipboardManager.current
     val esCorreo = contacto.contains("@")
 
     AlertDialog(
         onDismissRequest = onClose,
-        title = { Text("Información de contacto") },
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = { Text("Información de contacto", color = MaterialTheme.colorScheme.onSurface) },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(contacto, fontWeight = FontWeight.Bold)
+                Text(contacto, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(12.dp))
                 Button(
                     onClick = {
                         clipboardManager.setText(AnnotatedString(contacto))
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF64B5F6))
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
                 ) {
-                    Text(if (esCorreo) "Copiar correo" else "Copiar número", color = Color.White)
+                    Text(if (esCorreo) "Copiar correo" else "Copiar número", color = MaterialTheme.colorScheme.onSecondary)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Button(
                     onClick = {
                         onClose()
-                        navController.navigate("chatScreen/${contacto}")
+                        navController.navigate("chatScreen/${contacto}/${userName}")
+
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D47A1))
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("Enviar mensaje", color = Color.White)
+                    Text("Enviar mensaje", color = MaterialTheme.colorScheme.onPrimary)
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = onClose) {
-                Text("Cerrar", color = Color.Gray)
+                Text("Cerrar", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     )
