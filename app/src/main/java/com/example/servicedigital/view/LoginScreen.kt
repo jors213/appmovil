@@ -1,5 +1,6 @@
 package com.example.servicedigital.view
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -21,6 +22,8 @@ import com.example.servicedigital.controller.UserController
 import com.example.servicedigital.ui.theme.ThemeManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.TileMode
 
 @Composable
 fun LoginScreen(navController: NavController) {
@@ -37,36 +40,35 @@ fun LoginScreen(navController: NavController) {
     val coroutineScope = rememberCoroutineScope()
     val userController = remember { UserController() }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = backgroundColor
-    ) {
-        // Box para colocar el botón de tema en la esquina
-        Box(modifier = Modifier.fillMaxSize()) {
-            
-            // Botón de cambio de tema en la esquina superior derecha
-            IconButton(
-                onClick = { ThemeManager.isDarkTheme = !ThemeManager.isDarkTheme },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .statusBarsPadding()
-                    .padding(16.dp)
-            ) {
-                Icon(
-                    imageVector = if (ThemeManager.isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
-                    contentDescription = "Cambiar tema",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
+    val gradientBackground = Brush.verticalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primary, // NeonPurple o DeepBlue
+            MaterialTheme.colorScheme.background,
+            MaterialTheme.colorScheme.background
+        ),
+        startY = 0f,
+        endY = 1000f // Ajusta según el efecto deseado
+    )
 
-            Column(
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(gradientBackground) // <--- El cambio mágico
+            ) {
+                // ... aquí va tu columna con el formulario y el botón de tema ...
+                // Sugerencia: Envuelve el formulario en una Card con transparencia ligera
+                Card(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
                     .padding(24.dp)
-                    .align(Alignment.Center), // Centrar contenido
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                    .align(Alignment.Center),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+                ),
+            elevation = CardDefaults.cardElevation(8.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Título
                 Text(

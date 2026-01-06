@@ -29,6 +29,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.servicedigital.R
 import com.example.servicedigital.view.ServiceViewModel
 import androidx.compose.material3.CardDefaults
+import androidx.compose.ui.graphics.Brush
 import com.example.servicedigital.network.RetrofitClient
 import com.example.servicedigital.ui.theme.ThemeManager
 
@@ -41,6 +42,79 @@ data class Servicio(
     val imagen: Int,
     val contacto: String
 )
+
+@Composable
+fun ServiceCardPro(
+    servicio: Servicio,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .clickable { onClick() }, // Ripple effect al hacer click
+        shape = RoundedCornerShape(16.dp), // Bordes más redondeados
+        elevation = CardDefaults.cardElevation(6.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column {
+            // Imagen ocupando todo el ancho
+            Box(modifier = Modifier.height(180.dp).fillMaxWidth()) {
+                Image(
+                    painter = painterResource(id = servicio.imagen),
+                    contentDescription = servicio.titulo,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                // Degradado sobre la imagen para que el texto se lea mejor si decides ponerlo encima
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f)),
+                                startY = 100f
+                            )
+                        )
+                )
+                // Etiqueta de precio o categoría (Opcional)
+                AssistChip(
+                    onClick = {},
+                    label = { Text("Verificado", color = Color.White) },
+                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+                    colors = AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
+                )
+            }
+
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = servicio.titulo,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = servicio.descripcion,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Botón de acción más sutil
+                Button(
+                    onClick = onClick,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Contactar Profesional")
+                }
+            }
+        }
+    }
+}
+
 
 @Composable
 fun ServiceCatalogScreen(
@@ -174,45 +248,15 @@ fun ServiceCatalogScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(serviciosCombinados) { servicio ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                        colors = CardDefaults.cardColors(containerColor = cardColor)
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(16.dp)
-                        ) {
-
-                            //placeholder temporal
-                            Image(
-                                painter = painterResource(id = R.drawable.placeholder),
-                                contentDescription = servicio.titulo,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(160.dp),
-                                contentScale = ContentScale.Crop
-                            )
-
-                            Spacer(Modifier.height(10.dp))
-
-                            Text(servicio.titulo, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                            Text(servicio.descripcion, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                            Spacer(Modifier.height(10.dp))
-
-                            Button(
-                                onClick = {
-                                    contactoSeleccionado = servicio.contacto
-                                    showDialog = true
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                            ) {
-                                Text("Contactar servicio", color = MaterialTheme.colorScheme.onSecondary)
-                            }
+                    // CORRECCIÓN: Usamos ServiceCardPro limpiamente
+                    ServiceCardPro(
+                        servicio = servicio,
+                        onClick = {
+                            // Aquí definimos qué pasa al hacer click (abrir el diálogo)
+                            contactoSeleccionado = servicio.contacto
+                            showDialog = true
                         }
-                    }
+                    )
                 }
             }
 

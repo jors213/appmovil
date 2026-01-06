@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -88,16 +89,36 @@ fun ChatScreen(
 
                 val isMe = msg.sender == "me" || msg.sender == nombreEmisor
 
+                // 1. DEFINIMOS LA FORMA (Burbuja con punta)
+                // Importante: Asegúrate de tener import androidx.compose.foundation.shape.RoundedCornerShape
+                val cornerRadius = 16.dp
+                val bubbleShape = if (isMe) {
+                    RoundedCornerShape(
+                        topStart = cornerRadius,
+                        topEnd = 0.dp, // Punta aquí para el emisor
+                        bottomEnd = cornerRadius,
+                        bottomStart = cornerRadius
+                    )
+                } else {
+                    RoundedCornerShape(
+                        topStart = 0.dp, // Punta aquí para el receptor
+                        topEnd = cornerRadius,
+                        bottomEnd = cornerRadius,
+                        bottomStart = cornerRadius
+                    )
+                }
+
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
                 ) {
 
-                    // BURBUJA
+                    // 2. APLICAMOS LA FORMA EN LA SURFACE
                     Surface(
                         color = if (isMe) primaryColor else surfaceColor,
-                        shape = MaterialTheme.shapes.medium,
-                        tonalElevation = 2.dp
+                        shape = bubbleShape, // <--- Aquí usamos la forma nueva
+                        tonalElevation = 2.dp,
+                        modifier = Modifier.widthIn(max = 280.dp) // <--- Evita que ocupe todo el ancho
                     ) {
                         Text(
                             text = msg.text,
