@@ -60,6 +60,10 @@ Gestión de temas centralizada (`ThemeManager`) que adapta toda la paleta de col
 
 ---
 
+**Desarrollado por Jorge Soto** - Ingeniero en Informática & Fullstack Developer.
+
+
+
 ## 📂 Estructura del Proyecto
 
 El código sigue una estructura de paquetes limpia para facilitar la navegación:
@@ -77,7 +81,3 @@ com.example.servicedigital
 │   ├── QrScannerScreen.kt
 │   └── ...
 └── MainActivity.kt  # Punto de entrada y navegación
-
----
-
-**Desarrollado por Jorge Soto** - Ingeniero en Informática & Fullstack Developer.
