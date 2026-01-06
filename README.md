@@ -78,4 +78,6 @@ com.example.servicedigital
 │   └── ...
 └── MainActivity.kt  # Punto de entrada y navegación
 
+---
+
 **Desarrollado por Jorge Soto** - Ingeniero en Informática & Fullstack Developer.
