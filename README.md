@@ -17,7 +17,7 @@ El proyecto fue construido siguiendo las mejores prácticas de desarrollo modern
 
 ## 📱 Demo en Funcionamiento
 
-![Demo App](assets/gifAppMovil)
+![Demo App](assets/gifAppMovil.gif)
 
 ---
 
